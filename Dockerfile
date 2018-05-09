@@ -1,10 +1,10 @@
-FROM debian:unstable
+FROM ubuntu:16.04
 
 MAINTAINER Sysdig <support@sysdig.com>
 
 ENV FALCO_REPOSITORY dev
 
-LABEL RUN="docker run -i -t -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro --name NAME IMAGE"
+LABEL RUN="docker run -i -t --privileged -v /var/run/docker.sock:/host/var/run/docker.sock -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro -v /lib/modules:/host/lib/modules:ro -v /usr:/host/usr:ro --name NAME IMAGE"
 
 ENV SYSDIG_HOST_ROOT /host
 
@@ -12,13 +12,11 @@ ENV HOME /root
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root
 
-ADD http://download.draios.com/apt-draios-priority /etc/apt/preferences.d/
-
-RUN echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources.list.d/jessie.list \
- && apt-get update \
+RUN apt-get update \
  && apt-get install -y --no-install-recommends \
 	bash-completion \
 	curl \
+	dkms \
 	jq \
 	gnupg2 \
 	ca-certificates \
@@ -37,10 +35,9 @@ RUN rm -rf /usr/bin/gcc \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.7 \
  && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc-4.6
 
-RUN curl -s https://s3.amazonaws.com/download.draios.com/DRAIOS-GPG-KEY.public | apt-key add - \
- && curl -s -o /etc/apt/sources.list.d/draios.list http://download.draios.com/$FALCO_REPOSITORY/deb/draios.list \
- && apt-get update \
- && apt-get install -y --no-install-recommends falco \
+COPY ./falco-0.9.0-1-x86_64.deb /
+
+RUN dpkg -i /falco-0.9.0-1-x86_64.deb \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
